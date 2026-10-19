@@ -25,7 +25,11 @@
       if (opts.text) return ok(typeof data === 'string' ? data : JSON.stringify(data));
       if (typeof data !== 'string') return ok(data);
       try { ok(JSON.parse(data)); } catch (e) { fail(e); }
-    }, function (a, c) { fail(a || c); }, false, params);
+    }, function (a, c) {
+      var st = a && typeof a.status !== 'undefined' ? a.status : '?';
+      console.log('AniHub request failed', st, target, a, c);
+      fail({ status: st, url: target });
+    }, false, params);
   }
 
   // ---------- AniHub API ----------
@@ -35,13 +39,13 @@
 
     function bySearch() {
       if (title.length < 2) return ok([]);
-      get(API + '/anime?page_size=20&search=' + encodeURIComponent(title), {}, function (r) {
+      get(API + '/anime?page_size=20&search=' + encodeURIComponent(title), { cors: true }, function (r) {
         ok((r && r.items) || []);
       }, fail);
     }
 
     if (!imdb) return bySearch();
-    get(API + '/anime?page_size=20&imdb_id=' + encodeURIComponent(imdb), {}, function (r) {
+    get(API + '/anime?page_size=20&imdb_id=' + encodeURIComponent(imdb), { cors: true }, function (r) {
       var items = (r && r.items) || [];
       items.length ? ok(items) : bySearch();
     }, bySearch);
@@ -49,7 +53,7 @@
 
   // !!! Перевір реальний ендпоінт і формат у DevTools сайту (вкладка Network на сторінці тайтлу)
   function loadEpisodes(anime, ok, fail) {
-    get(API + '/anime/' + anime.id + '/episodes', {}, function (data) {
+    get(API + '/anime/' + anime.id + '/episodes', { cors: true }, function (data) {
       ok(normalizeEpisodes(data));
     }, fail);
   }
@@ -169,9 +173,9 @@
       Lampa.Loading.stop();
       if (!eps.length) return noty('серій не знайдено');
       chooseDub(eps, anime);
-    }, function () {
+    }, function (err) {
       Lampa.Loading.stop();
-      noty('помилка завантаження серій');
+      noty('помилка завантаження серій (status ' + (err && err.status) + ')');
     });
   }
 
@@ -194,9 +198,10 @@
         onSelect: function (a) { openAnime(a.anime); },
         onBack: back
       });
-    }, function () {
+    }, function (err) {
       Lampa.Loading.stop();
-      noty('API недоступне');
+      var st = err && err.status;
+      noty('API недоступне (status ' + st + (st === 0 ? ' — CORS, вкажи проксі' : '') + ')');
     });
   }
 
@@ -213,10 +218,10 @@
       return noty('не знайдено контейнер кнопок');
     }
 
-    var btn = $('<div class="full-start__button selector view--anihub">' + ICON + '<span>AniHub</span></div>');
+    var btn = $('<div class="full-start__button selector view--online view--anihub" data-subtitle="AniHub — аніме українською">' + ICON + '<span>AniHub</span></div>');
     btn.on('hover:enter', function () { start(e.data.movie); });
 
-    var anchor = box.find('.view--torrent, .view--online').last();
+    var anchor = box.find('.view--torrent, .view--online').not('.view--anihub').last();
     anchor.length ? anchor.after(btn) : box.append(btn);
   }
 
