@@ -200,16 +200,24 @@
     });
   }
 
-  function addButton(e) {
-    var render = e.object.activity.render();
+  function addButton(e, attempt) {
+    attempt = attempt || 0;
+    var render = e.object && e.object.activity && e.object.activity.render();
+    if (!render) return;
     if (render.find('.view--anihub').length) return;
+
+    var box = render.find('.full-start-new__buttons, .full-start__buttons, .full-start-new__buttons-list').first();
+
+    if (!box.length) {
+      if (attempt < 10) return setTimeout(function () { addButton(e, attempt + 1); }, 300);
+      return noty('не знайдено контейнер кнопок');
+    }
 
     var btn = $('<div class="full-start__button selector view--anihub">' + ICON + '<span>AniHub</span></div>');
     btn.on('hover:enter', function () { start(e.data.movie); });
 
-    var box = render.find('.full-start-new__buttons, .full-start__buttons').first();
-    var torrent = box.find('.view--torrent');
-    torrent.length ? torrent.after(btn) : box.append(btn);
+    var anchor = box.find('.view--torrent, .view--online').last();
+    anchor.length ? anchor.after(btn) : box.append(btn);
   }
 
   function addSettings() {
@@ -223,9 +231,10 @@
   }
 
   function init() {
+    noty('плагін завантажено'); // тимчасово, для діагностики
     addSettings();
     Lampa.Listener.follow('full', function (e) {
-      if (e.type === 'complite') addButton(e);
+      if (e.type === 'complite' || e.type === 'complete') addButton(e);
     });
   }
 
