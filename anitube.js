@@ -272,7 +272,9 @@
     var render = e.object && e.object.activity && e.object.activity.render();
     if (!render || render.find('.view--anitube').length) return;
 
-    var box = render.find('.full-start-new__buttons, .full-start__buttons, .full-start-new__buttons-list').first();
+    // нова Лампа: меню «Джерело» збирає кнопки з прихованого .buttons--container
+    var box = render.find('.buttons--container').first();
+    if (!box.length) box = render.find('.full-start-new__buttons, .full-start__buttons').first();
     if (!box.length) {
       if (attempt < 10) setTimeout(function () { addButton(e, attempt + 1); }, 300);
       return;
